@@ -1,21 +1,49 @@
+# set working directory
+setwd("/data/pt_life/ResearchProjects/LLammer/gamms/Analysis/Simulations")
 # load required package
-library(lmerTest)
+library(gamm4)
 # define functions for LME modelling
-simulate_lmer <- function(dv){ # dv is respective dependent variable
-  mod <- lmer(data = df[df$neurocog == 1,], formula = paste0(dv, " ~ age + gender + LSNS + thresh + (1|ID)"))
-  smod <- summary(mod)
+simulate_amm <- function(dv){ # dv is respective dependent variable
+  fullmod <- gamm4(data = df[df$neurocog == 1,], formula = as.formula(paste0(dv, " ~ s(age) + gender + s(LSNS)")), random =~(1|ID), REML = F)
+  basemod <- gamm4(data = df[df$neurocog == 1,], formula = as.formula(paste0(dv, " ~ s(age) + gender + LSNS")), random =~(1|ID), REML = F)
+  # save plot of s(LSNS) for qualitative inspection
+  # Open device
+  tiff(paste0("plots/", dv,n), res = 600, width = 8, height = 8, units = "cm")
+  # Make a plot
+  plot(fullmod$gam, select = 2)
+  # Close device
+  dev.off()
+  # compare full and base model
+  anovares <- anova(basemod$mer, fullmod$mer)
+  # create a summary of the model to return the edf of the LSNS-smoot
+  modelsum <- summary(fullmod$gam)
   # save results into external dataframe
-  return(smod$coefficients[c("thresh", "LSNS"), c("Estimate", "Pr(>|t|)")])
+  return(c(anovares[1,c("AIC", "BIC", "Pr(>Chisq)")], anovares[2,c("AIC", "BIC", "Pr(>Chisq)")], modelsum$s.table[2,1]))
 }
-simulate_glmer <- function(dv){
-  mod <- glmer(data = df, formula = paste0(dv, " ~ age + gender + LSNS + thresh + (1|ID)"), family = poisson(link = "log"))
-  smod <- summary(mod)
-  return(smod$coefficients[c("thresh", "LSNS"), c("Estimate", "Pr(>|z|)")])
+simulate_gamm <- function(dv){
+  fullmod <- gamm4(data = df, formula = as.formula(paste0(dv, " ~ s(age) + gender + s(LSNS)")), random =~(1|ID), family = poisson(link = "log"), REML = F)
+  basemod <- gamm4(data = df, formula = as.formula(paste0(dv, " ~ s(age) + gender + LSNS")), random =~(1|ID), family = poisson(link = "log"), REML = F)
+  # use predict to plot s(LSNS) on scale of response variable and save plot for qualitative inspection
+  # Open device
+  tiff(paste0("plots/", dv,n), res = 600, width = 8, height = 8, units = "cm")
+  # Make a plot
+  # first, create new dataframe for predict function with age and gender set to 0
+  newdata = data.frame(LSNS=0:30, age= 0, gender = 0)
+  # plot on response variable scale
+  plot(predict(fullmod$gam, newdata, type="response"))
+  # Close device
+  dev.off()
+  # compare full and base model
+  anovares <- anova(basemod$mer, fullmod$mer)
+  # create a summary of the model to return the edf of the LSNS-smoot
+  modelsum <- summary(fullmod$gam)
+  # save results into external dataframe
+  return(c(anovares[1,c("AIC", "BIC", "Pr(>Chisq)")], anovares[2,c("AIC", "BIC", "Pr(>Chisq)")], modelsum$s.table[2,1]))
 }
 
 # prepare data frame for simulation results
-simres <- data.frame(matrix(nrow = 100*5*7, ncol = 8))
-colnames(simres) <- c("simulation", "outcome", "coeffthresh", "pthresh", "pthresh_sided", "coeffLSNS", "p_LSNS", "p_LSNS_sided")
+simres <- data.frame(matrix(nrow = 100*5*7, ncol = 9))
+colnames(simres) <- c("simulation", "outcome", "AICbase", "BICbase", "pbase", "AICfull", "BICfull", "pfull", "edf")
 simres$simulation <- unlist(lapply(1:100, rep, times = 5*7))
 simres$outcome <- as.vector(outer(c("HCV", "exfunct", "memo", "procspeed", "CESD_out", "WMHV", "GAD"),c("", "exp", "lin", "threshexp", "threshlin"), paste, sep = "" ))
 
@@ -37,6 +65,7 @@ df$neurocog[-c(1:2500, 10001:11800)] <- 0
 
 # loop through 100 simulations
 for (n in 1:100) {
+  print(n)
   set.seed(n) # set seed for reproducibility
   # simulate predictor variables based on prevalence / mean and SD from Lammer et al.
   df$LSNS <- round(rnorm(15500, mean = 14.1, sd = 5.2), digits = 0)
@@ -175,7 +204,7 @@ for (n in 1:100) {
   # at the average WMHV of 2952.6 mm³ this would be an increase of 2952.6*0.094174 = 278.0582
   # this would be the effect size for categorical social isolation
   # to approximate the effect size per point on the LSNS we can use a sensitivity analysis from Lammer et al. (Appendix table 16) 
-  # while the effect on HCV per point was –5.7, the effect of categorical LSNS was –81.625 --> -81.625 / -5.7 = 14.32018
+  # while the effect on HCV per point was -5.7, the effect of categorical LSNS was -81.625 --> -81.625 / -5.7 = 14.32018
   # accordingly our predictor for WMHV is 278.0582 / 14.32018 = 19.41723
   # we can approximately convert the predictors for age and gender into absolute values on a linear WMHV scale 
   # age: 0.05 --> exp(0.05) = 1.051271 --> 2952.6*0.051271 = 151.3828
@@ -210,49 +239,49 @@ for (n in 1:100) {
   # sum((1:(max(df$LSNS)-18))*dnorm(19:max(df$LSNS), mean = 14.1, sd = 5.2)) / sum(dnorm(19:max(df$LSNS), mean = 14.1, sd = 5.2))
   # = 3.407734
   # the average slope for LSNS > 18 = y + 3.4*2*z = y + 6.8z
-  # x = 0.8*y + 0.2*(y+6.8z) = 0.8y + 0.2y + 6.8z = y + 6.8z
+  # x = 0.8*y + 0.2*(y+6.8z) = 0.8y + 0.2y + 0.2*6.8z = y + 1.36z
   # for the threshold to have a substantial effect, we want the average slope above the threshold to be 3 times as large as below
-  # 3y = y+6.8z
-  # 2y = 6.8z
-  # y = 3.407734z
-  # x = -5.697 = y + 6.8z = 3.407734z + 6.8z = 3 * 3.407734z = 10.2232z
-  # -5.697 / 10.2232 = z = -0.5572619
-  # y = 3.407734z = 3.407734*(-0.5572619) = -1.899
+  # 3y = y+1.36z
+  # 2y = 1.36z
+  # y = 0.68z
+  # x = -5.697 = y + 1.36z = 0.68z + 1.36z = 2.04z 
+  # -5.697 / 2.04 = z = -2.792647
+  # y = 0.68z = 0.68*(-2.792647) = -1.899
   
   # analogously the following coefficients for the other outcomes can be calculated
-  # ef: x = -0.017;  z = -0.017 / 10.2232 = -0.001662884; y = 3.407734*(-0.001662884) = -0.005666666
-  # memo: x = -0.008; z = -0.008 / 10.2232 = -0.0007825338; y = 3.407734*(-0.0007825338) = -0.002666667
-  # procspeed: x = -0.017; z = -0.017 / 10.2232 = -0.001662884; y = 3.407734*(-0.001662884) = -0.005666666
-  # CESD: x = 0.25; z = 0.25 / 10.2232 = 0.02445418; y = 3.407734*0.02445418 = 0.08333334
-  # GAD7: x = 0.25161; z = 0.25161 / 10.2232 = 0.02461167; y = 3.407734*0.02461167 = 0.08387002
-  # WMHV: x = 19.41723; z = 19.41723 / 10.2232 = 1.89933; y = 3.407734 * 1.89933 = 6.472411
+  # ef: x = -0.017;  z = -0.017 / 2.04 = -0.008333333; y = 0.68*(-0.008333333) = -0.005666666
+  # memo: x = -0.008; z = -0.008 / 2.04 = -0.003921569; y = 0.68*(-0.003921569) = -0.002666667
+  # procspeed: x = -0.017; z = -0.017 / 2.04 = -0.008333333; y = 0.68*(-0.008333333) = -0.005666666
+  # CESD: x = 0.25; z = 0.25 / 2.04 = 0.122549; y = 0.68*0.122549 = 0.08333334
+  # GAD7: x = 0.25161; z = 0.25161 / 2.04 = 0.1233382; y = 0.68*0.1233382 = 0.08387002
+  # WMHV: x = 19.41723; z = 19.41723 / 2.04 = 9.51825; y = 0.68 * 9.51825 = 6.472411
   
   # simulate HCV for all subjects only using y
   df$HCVexp <- df$HCV_ri + 3828.409 + rnorm(n = 15500,mean = 0, sd = 47.4) + df$age*(-5.697) + df$gender*(-46.390) + df$LSNS*(-1.899) +
     df$BMI*13.722 + df$CESD*12.184 + df$diabetes*(-99.613) + df$education*(-93.450) + df$hypertension*(-21.182) + 
     df$PSQI*(-11.915) + df$IPAQ*(-12.253)
   # add exponential component if LSNS > 18
-  df$HCVexp <- ifelse(df$LSNS > 18, df$HCVexp - 0.5572619*((df$LSNS-18)^2), df$HCVexp)
+  df$HCVexp <- ifelse(df$LSNS > 18, df$HCVexp - 2.792647*((df$LSNS-18)^2), df$HCVexp)
   
   # do the same for other outcomes
   df$exfunctexp <- df$exfunct_ri + 0.643381 + rnorm(15500,0,0.466906) + df$age*(-0.014) + df$gender*(-0.122) + 
     df$LSNS*(-0.005666666) +   df$BMI*(-0.074) + df$CESD*(-0.141) + df$diabetes*(-0.055) + df$education*(-0.331) + 
     df$hypertension*(-0.097) + df$PSQI*(0.024) + df$IPAQ*(-0.035)
-  df$exfunctexp <- ifelse(df$LSNS > 18, df$exfunctexp - 0.001662884*((df$LSNS-18)^2), df$exfunctexp)
+  df$exfunctexp <- ifelse(df$LSNS > 18, df$exfunctexp - 0.008333333*((df$LSNS-18)^2), df$exfunctexp)
   df$memoexp <- df$memo_ri + 0.479806 + rnorm(15500,0,0.37214) + df$age*(-0.033) + df$gender*(-0.421) + 
     df$LSNS*(-0.002666667) +   df$BMI*(-0.031) + df$CESD*(-0.120) + df$diabetes*(-0.038) + df$education*(-0.173) + 
     df$hypertension*(0.017) + df$PSQI*(-0.0046) + df$IPAQ*(-0.0227)
-  df$memoexp <- ifelse(df$LSNS > 18, df$memoexp - 0.0007825338*((df$LSNS-18)^2), df$memoexp)
+  df$memoexp <- ifelse(df$LSNS > 18, df$memoexp - 0.003921569*((df$LSNS-18)^2), df$memoexp)
   df$procspeedexp <- df$procspeed_ri + 0.462252 + rnorm(15500,0,0.3964443) + df$age*(-0.036) + df$gender*(-0.124) + 
     df$LSNS*(-0.005666666) +   df$BMI*(-0.013) + df$CESD*(-0.027) + df$diabetes*(-0.005) + df$education*(-0.115) + 
     df$hypertension*(-0.067) + df$PSQI*(-0.0566) + df$IPAQ*(-0.041)
-  df$procspeedexp <- ifelse(df$LSNS > 18, df$procspeedexp - 0.001662884*((df$LSNS-18)^2), df$procspeedexp)
+  df$procspeedexp <- ifelse(df$LSNS > 18, df$procspeedexp - 0.008333333*((df$LSNS-18)^2), df$procspeedexp)
   df$CESD_outexp <- df$CESD_ri + rpois(15500, 2.022521) + 4.280758 + df$age*0.1419214 + df$gender*0.1419214 + df$LSNS*0.08333334
-  df$CESD_outexp <- ifelse(df$LSNS > 18, abs(round(df$CESD_outexp + 0.02445418*((df$LSNS-18)^2),0)), abs(round(df$CESD_outexp,0)))
+  df$CESD_outexp <- ifelse(df$LSNS > 18, abs(round(df$CESD_outexp + 0.122549*((df$LSNS-18)^2),0)), abs(round(df$CESD_outexp,0)))
   df$GADexp <- df$GAD_ri + rpois(15500, 1.149466) + df$age*0.022165 + df$gender*0.022165 + df$LSNS*0.08387002
-  df$GADexp <- ifelse(df$LSNS > 18, abs(round(df$GADexp + 0.02461167*((df$LSNS-18)^2),0)), abs(round(df$GADexp,0)))
+  df$GADexp <- ifelse(df$LSNS > 18, abs(round(df$GADexp + 0.1233382*((df$LSNS-18)^2),0)), abs(round(df$GADexp,0)))
   df$WMHVexp <- df$WMHV_ri + rpois(15500, 1814.977) + df$age*151.3828 + df$gender*1032.994 + df$LSNS*6.472411
-  df$WMHVexp <- ifelse(df$LSNS > 18, abs(round(df$WMHVexp + 1.89933*((df$LSNS-18)^2),0)), abs(round(df$WMHVexp,0)))
+  df$WMHVexp <- ifelse(df$LSNS > 18, abs(round(df$WMHVexp + 9.51825*((df$LSNS-18)^2),0)), abs(round(df$WMHVexp,0)))
   
   # similarly we can simulate our outcome variables for the case that there is an additional linear effect of LSNS above threshold
   # the average slope across the scores 0-30 should be equivalent to the average slope under the linear assumption
@@ -270,34 +299,34 @@ for (n in 1:100) {
     df$BMI*13.722 + df$CESD*12.184 + df$diabetes*(-99.613) + df$education*(-93.450) + df$hypertension*(-21.182) + 
     df$PSQI*(-11.915) + df$IPAQ*(-12.253) - 4.069286*df$LSNS
   # add linear component if LSNS > 18
-  df$HCVlin <- ifelse(df$LSNS > 18, df$HCVlin - (12.20786 - 4.069286)*(df$LSNS-18), df$HCVlin)
+  df$HCVlin <- ifelse(df$LSNS > 18, df$HCVlin - (2*4.069286)*(df$LSNS-18), df$HCVlin)
   
   # analogously the following coefficients for the other outcomes can be calculated
-  # ef: x = -0.017;  y = -0.017 / 1.4 = -0.01214286; z = 3 * y = -0.03642858
-  # memo: x = -0.008; y = -0.008 / 1.4 = -0.005714286; z = 3 * y = -0.01714286
-  # procspeed: x = -0.017; y = -0.017 / 1.4 = -0.01214286; z = 3 * y = -0.03642858
-  # CESD: x = 0.25; y = 0.25/1.4 = 0.1785714; z = 3 * y = 0.5357142
-  # GAD7: x = 0.25161; y = 0.25161/1.4 = 0.1797214; z = 3 * y = 0.5391642
-  # WMHV: x = 19.41723; y = 19.41723 / 1.4 = 13.86945; z = 3 * y = 41.60835
+  # ef: x = -0.017;  y = -0.017 / 1.4 = -0.01214286; z = 2 * y = -0.02428572
+  # memo: x = -0.008; y = -0.008 / 1.4 = -0.005714286; z = 2 * y = -0.01142857
+  # procspeed: x = -0.017; y = -0.017 / 1.4 = -0.01214286; z = 2 * y = -0.02428572
+  # CESD: x = 0.25; y = 0.25/1.4 = 0.1785714; z = 2 * y = 0.3571428
+  # GAD7: x = 0.25161; y = 0.25161/1.4 = 0.1797214; z = 2 * y = 0.3594428
+  # WMHV: x = 19.41723; y = 19.41723 / 1.4 = 13.86945; z = 2 * y = 27.7389
   
   df$exfunctlin <- df$exfunct_ri + 0.643381 + rnorm(15500,0,0.466906) + df$age*(-0.014) + df$gender*(-0.122) + 
     df$BMI*(-0.074) + df$CESD*(-0.141) + df$diabetes*(-0.055) + df$education*(-0.331) + 
     df$hypertension*(-0.097) + df$PSQI*(0.024) + df$IPAQ*(-0.035) - 0.01214286*df$LSNS
-  df$exfunctlin <- ifelse(df$LSNS > 18, df$exfunctlin - (0.036428586 - 0.01214286)*(df$LSNS-18), df$exfunctlin)
+  df$exfunctlin <- ifelse(df$LSNS > 18, df$exfunctlin - (2*0.01214286)*(df$LSNS-18), df$exfunctlin)
   df$memolin <- df$memo_ri + 0.479806 + rnorm(15500,0,0.37214) + df$age*(-0.033) + df$gender*(-0.421) + 
     df$BMI*(-0.031) + df$CESD*(-0.120) + df$diabetes*(-0.038) + df$education*(-0.173) + 
     df$hypertension*(0.017) + df$PSQI*(-0.0046) + df$IPAQ*(-0.0227) - 0.005714286*df$LSNS
-  df$memolin <- ifelse(df$LSNS > 18, df$memolin - (0.01714286 -  - 0.005714286)*(df$LSNS-18), df$memolin)
+  df$memolin <- ifelse(df$LSNS > 18, df$memolin - (2*0.005714286)*(df$LSNS-18), df$memolin)
   df$procspeedlin <- df$procspeed_ri + 0.462252 + rnorm(15500,0,0.3964443) + df$age*(-0.036) + df$gender*(-0.124) + 
     df$BMI*(-0.013) + df$CESD*(-0.027) + df$diabetes*(-0.005) + df$education*(-0.115) + 
     df$hypertension*(-0.067) + df$PSQI*(-0.0566) + df$IPAQ*(-0.041) - 0.01214286*df$LSNS
-  df$procspeedlin <- ifelse(df$LSNS > 18, df$procspeedlin - (0.036428586 - 0.01214286)*(df$LSNS-18), df$procspeedlin)
+  df$procspeedlin <- ifelse(df$LSNS > 18, df$procspeedlin - (2*0.01214286)*(df$LSNS-18), df$procspeedlin)
   df$CESD_outlin <- df$CESD_ri + rpois(15500, 2.022521) + 4.280758 + df$age*0.1419214 + df$gender*0.1419214 + df$LSNS*0.1785714
-  df$CESD_outlin <- ifelse(df$LSNS > 18, abs(round(df$CESD_outlin + (0.5357142-0.1785714)*(df$LSNS-18),0)), abs(round(df$CESD_outlin,0)))
+  df$CESD_outlin <- ifelse(df$LSNS > 18, abs(round(df$CESD_outlin + (2*0.1785714)*(df$LSNS-18),0)), abs(round(df$CESD_outlin,0)))
   df$GADlin <- df$GAD_ri + rpois(15500, 1.149466) + df$age*0.1419214 + df$gender*0.1419214 + df$LSNS*0.1797214
-  df$GADlin <- ifelse(df$LSNS > 18, abs(round(df$GADlin + (0.5391642-0.1797214)*(df$LSNS-18),0)), abs(round(df$GADlin,0)))
+  df$GADlin <- ifelse(df$LSNS > 18, abs(round(df$GADlin + (2*0.1797214)*(df$LSNS-18),0)), abs(round(df$GADlin,0)))
   df$WMHVlin <- df$WMHV_ri + rpois(15500, 1814.977) + df$age*151.3828 + df$gender*1032.994 + df$LSNS*13.86945
-  df$WMHVlin <- ifelse(df$LSNS > 18, abs(round(df$WMHVlin + (41.60835-13.86945)*(df$LSNS-18),0)), abs(round(df$WMHVlin,0)))
+  df$WMHVlin <- ifelse(df$LSNS > 18, abs(round(df$WMHVlin + (2*13.86945)*(df$LSNS-18),0)), abs(round(df$WMHVlin,0)))
   
   # we shall now simulate our outcome variables for the thresholded exponential case (scenario 3)
   # for HCV: 
@@ -383,62 +412,28 @@ for (n in 1:100) {
   
   # run models
   for (var in outvars_gauss){
-    simres[simres$simulation == n & simres$outcome == var,c("coeffthresh", "coeffLSNS", "pthresh", "p_LSNS")] <- simulate_lmer(dv = var)
+    simres[simres$simulation == n & simres$outcome == var,c("AICbase", "BICbase", "pbase", "AICfull", "BICfull", "pfull", "edf")] <- simulate_amm(dv = var)
   }
   for (var in outvars_poisson){
-    simres[simres$simulation == n & simres$outcome == var,c("coeffthresh", "coeffLSNS", "pthresh", "p_LSNS")] <- simulate_glmer(dv = var)
+    simres[simres$simulation == n & simres$outcome == var,c("AICbase", "BICbase", "pbase", "AICfull", "BICfull", "pfull", "edf")] <- simulate_gamm(dv = var)
   }
-  
-}
-simres[simres$outcome %in% outvars_gauss,"pthresh_sided"] <- ifelse(simres[simres$outcome %in% outvars_gauss,"coeffthresh"] 
-  < 0, simres[simres$outcome %in% outvars_gauss,"pthresh"]/2, 1-(simres[simres$outcome %in% outvars_gauss,"pthresh"]/2))
-simres[simres$outcome %in% outvars_gauss,"p_LSNS_sided"] <- ifelse(simres[simres$outcome %in% outvars_gauss,"coeffLSNS"] 
-  < 0, simres[simres$outcome %in% outvars_gauss,"p_LSNS"]/2, 1-(simres[simres$outcome %in% outvars_gauss,"p_LSNS"]/2))
-simres[simres$outcome %in% outvars_poisson,"pthresh_sided"] <- ifelse(simres[simres$outcome %in% outvars_poisson,"coeffthresh"] 
-  > 0, simres[simres$outcome %in% outvars_poisson,"pthresh"]/2, 1-(simres[simres$outcome %in% outvars_poisson,"pthresh"]/2))
-simres[simres$outcome %in% outvars_poisson,"p_LSNS_sided"] <- ifelse(simres[simres$outcome %in% outvars_poisson,"coeffLSNS"] 
-  > 0, simres[simres$outcome %in% outvars_poisson,"p_LSNS"]/2, 1-(simres[simres$outcome %in% outvars_poisson,"p_LSNS"]/2))
-
-for (n in nrow(simres)){
-  if (simres[n,"outcome"] %in% outvars_gauss){
-    if (simres[n,"coeffthresh"] < 0){
-      simres[n,"pthresh_sided"] <- simres[n,"pthresh"]*2
-    } else {
-      simres[n,"pthresh_sided"] <- 1-(simres[n,"pthresh"]/2)
-    }
-    if (simres[n,"coeffLSNS"] < 0){
-      simres[n,"p_LSNS_sided"] <- simres[n,"p_LSNS"]*2
-    } else {
-      simres[n,"p_LSNS_sided"] <- 1-(simres[n,"p_LSNS"]/2)
-    }
-  }
-  else {
-    if (simres[n,"coeffthresh"] > 0){
-      simres[n,"pthresh_sided"] <- simres[n,"pthresh"]*2
-    } else {
-      simres[n,"pthresh_sided"] <- 1-(simres[n,"pthresh"]/2)
-    }
-    if (simres[n,"coeffLSNS"] > 0){
-      simres[n,"p_LSNS_sided"] <- simres[n,"p_LSNS"]*2
-    } else {
-      simres[n,"p_LSNS_sided"] <- 1-(simres[n,"p_LSNS"]/2)
-    }
-  }
+  save.image("Simulation.RData")
 }
 
-simres_summary <- data.frame(matrix(ncol = 11, nrow = 5*7))
-column_names <- c("outcome", "coeffthresh", "pthresh", "pthreshsign", "pthresh_sided", "pthresh_sidedsign", "coeffLSNS", 
-                  "p_LSNS", "p_LSNSsign", "p_LSNS_sided", "p_LSNS_sidedsign")
-colnames(simres_summary) <- column_names
+simres$dAICbasefull <- simres$AICbase - simres$AICfull
+simres$dBICbasefull <- simres$BICbase - simres$BICfull
+simres_summary <- data.frame(matrix(ncol = 12, nrow = 5*7))
+colnames(simres_summary) <- c("outcome", "meanAICbase", "meanBICbase", "meanAICfull", "meanBICfull", "meanpfull", "propsignif", "meandAICbasefull", 
+                              "propAICprofull", "meandBICbasefull", "propBICprofull", "meanedf")
 simres_summary$outcome <- as.vector(outer(c("HCV", "exfunct", "memo", "procspeed", "CESD_out", "WMHV", "GAD"),c("", "exp", "lin", "threshexp", "threshlin"), paste, sep = "" ))
-for (outcome in outcomes){
-  for (column_name in c("coeffthresh", "pthresh", "pthresh_sided", "coeffLSNS", "p_LSNS", "p_LSNS_sided")) {
-    simres_summary[simres_summary$outcome == outcome,column_name] <- mean(simres[simres$outcome == outcome,column_name])
+for (outcome in simres_summary$outcome){
+  for (column_name in c("AICbase", "BICbase", "AICfull", "BICfull", "pfull", "dAICbasefull", "dBICbasefull", "edf")) {
+    simres_summary[simres_summary$outcome == outcome,c(paste0("mean", column_name))] <- mean(simres[simres$outcome == outcome,column_name], na.rm = T)
   }
-  for (column_name in c("pthreshsign", "pthresh_sidedsign", "p_LSNSsign", "p_LSNS_sidedsign")) {
-    simres_summary[simres_summary$outcome == outcome,column_name] <- length(which(simres[simres$outcome == outcome,substr(column_name,1,nchar(column_name)-4)] < 0.05))
-  }
+  simres_summary[simres_summary$outcome == outcome,"propAICprofull"] <- length(which(simres[simres$outcome == outcome,"dAICbasefull"] > 0)) / length(which(!is.na(simres[simres$outcome == outcome,"dAICbasefull"])))
+  simres_summary[simres_summary$outcome == outcome,"propBICprofull"] <- length(which(simres[simres$outcome == outcome,"dBICbasefull"] > 0)) / length(which(!is.na(simres[simres$outcome == outcome,"dBICbasefull"])))
+  simres_summary[simres_summary$outcome == outcome,"propsignif"] <- length(which(simres[simres$outcome == outcome,"pfull"] < 0.05)) / length(which(!is.na(simres[simres$outcome == outcome,"pfull"])))
 }
-false_positive_rate <- mean(simres_summary$pthresh_sidedsign[1:7]) # 6.142857
-true_positive_rate <- mean(simres_summary$pthresh_sidedsign[8:35]) # 80.85714
+write.csv(simres_summary, file = "simresults.csv", quote = F, row.names = F)
+save.image("Simulation.RData")
 
