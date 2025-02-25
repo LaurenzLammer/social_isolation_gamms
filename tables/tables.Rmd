@@ -1,0 +1,214 @@
+---
+title: "tables"
+author: "LL"
+date: "2025-02-24"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+# Table 3
+
+```{r echo=FALSE}
+library(flextable)
+library(tidyverse)
+
+set_flextable_defaults(font.family = "Times New Roman", font.size = 12)
+# set working directory and read in the results table
+setwd("/data/pt_life/ResearchProjects/LLammer/gamms/Results/weighted/")
+df <- read.csv("overview.csv")
+# remove irrelevant rows
+df <- df[c(1,2,7:18),]
+# give outcome better names for table
+df$outcome <- rep(c("HCV", "WMHV", "MEMO", "EF", "PS", "GAD7", "CESD"), each = 2)
+# rearrange rows to order cog functions alphabetically
+df[5:8,] <- df[c(7,8,5,6),]
+# replace missing q-values with p-values for non-FDR corrected models
+df$s_lsns_q.value <- ifelse(is.na(df$s_lsns_q.value), df$s_lsns_p.value_onesided, df$s_lsns_q.value)
+df$s_lsns_q.value <- ifelse(df$s_lsns_q.value < 0.0001, format(df$s_lsns_q.value, scientific = T, digits = 2), 
+                     round(df$s_lsns_q.value, digits = 4))
+df$s_lsns_q.value <- ifelse(df$s_lsns_q.value == "0.0e+00", "<2*10^16", df$s_lsns_q.value)
+df$min_s_lsns_q.value <- ifelse(is.na(df$min_s_lsns_q.value), df$min_s_lsns_p.value_onesided, df$min_s_lsns_q.value)
+df$min_s_lsns_q.value <- ifelse(df$min_s_lsns_q.value < 0.0001, format(df$min_s_lsns_q.value, scientific = T, digits = 2), 
+                            round(df$min_s_lsns_q.value, digits = 4))
+df$min_s_lsns_q.value <- ifelse(df$min_s_lsns_q.value == "0.0e+00", "<2*10^16", df$min_s_lsns_q.value)
+df$max_s_lsns_q.value <- ifelse(is.na(df$max_s_lsns_q.value), df$min_s_lsns_p.value_onesided, df$max_s_lsns_q.value)
+df$max_s_lsns_q.value <- ifelse(df$max_s_lsns_q.value < 0.0001, format(df$max_s_lsns_q.value, scientific = T, digits = 2), 
+                                round(df$max_s_lsns_q.value, digits = 4))
+df$max_s_lsns_q.value <- ifelse(df$max_s_lsns_q.value == "0.0e+00", "<2*10^16", df$max_s_lsns_q.value)
+# replace the covariate string with the model number
+df$covariates <- ifelse(df$covariates == "min", 1, 2)
+# express proportion of significance in n/5
+df$prop_lsns_q_significant <- paste0(df$prop_lsns_q_significant*5, "/5")
+flextable(df, col_keys = c("outcome", "covariates", "s_lsns_q.value", "min_s_lsns_q.value", "max_s_lsns_q.value", "prop_lsns_q_significant", "nobs")) %>%
+  theme_vanilla() %>%
+  set_header_labels(covariates = "model", s_lsns_q.value = "p/q-value", min_s_lsns_q.value = "min p/q-value", max_s_lsns_q.value = "max p/q-value", nobs = "n obs", prop_lsns_q_significant = "prop. signif.") %>% 
+  add_header_row(values = "Measures of significance across imputations", colwidths = 7) %>%
+  add_footer_lines(values = c("HCV = hippocampal volume; WMHV = white matter hyperintensity volume; EF = executive functions; MEMO = memory; PS = processing speed; GAD7 = 7-item Generlaized Anxiety Disease Questionnaire; CESD = 20-item Center for Epidemiologic Studies Depression Scale \n model 1: controlled for age and gender; model 2: controlled for further covariates \n HCV, WMHV, EF, MEMO & PS were FDR-corrected - for these variables the displayed values are q-values \n p/q-value = value in the 1st imputed dataset; min/max p/q-value: minimum/maximum value across all five imputations \n prop. signif. = proprtion of significant p/q vcalues across the five imputations; n obs = number of observation"))
+```
+
+# Table 4
+
+```{r echo=FALSE}
+library(flextable)
+library(tidyverse)
+
+set_flextable_defaults(font.family = "Times New Roman", font.size = 12)
+# set working directory and read in the results table
+setwd("/data/pt_life/ResearchProjects/LLammer/gamms/Results/weighted/")
+df <- read.csv("overview.csv")
+# remove irrelevant rows
+df <- df[c(1,2,7:18),]
+# give outcome better names for table
+df$outcome <- rep(c("HCV", "WMHV", "MEMO", "EF", "PS", "GAD7", "CESD"), each = 2)
+# rearrange rows to order cog functions alphabetically
+df[5:8,] <- df[c(7,8,5,6),]
+# replace the covariate string with the model number
+df$covariates <- ifelse(df$covariates == "min", 1, 2)
+# turn prop of effect into %
+df[,c("prop_of_effect", "min_prop_of_effect", "max_prop_of_effect")] <- 100 * df[,c("prop_of_effect", "min_prop_of_effect", "max_prop_of_effect")]
+# round values
+df[,c("Pr..Chisq.", "diff_BIC", "min_diff_BIC", "max_diff_BIC", "prop_of_effect", "min_prop_of_effect", "max_prop_of_effect")] <-
+  round(df[,c("Pr..Chisq.", "diff_BIC", "min_diff_BIC", "max_diff_BIC", "prop_of_effect", "min_prop_of_effect", "max_prop_of_effect")], digits = 3)
+flextable(df, col_keys = c("outcome", "covariates", "Pr..Chisq.", "diff_BIC", "min_diff_BIC", "max_diff_BIC", "prop_of_effect", "min_prop_of_effect", "max_prop_of_effect")) %>%
+  theme_vanilla() %>%
+  set_header_labels(covariates = "model", Pr..Chisq. = "p full vs null", diff_BIC = "Δ BIC", min_diff_BIC = "min Δ BIC", max_diff_BIC = "max Δ BIC", prop_of_effect = "% of effect", min_prop_of_effect = "min % of effect", max_prop_of_effect = "max % of effect") %>% 
+  add_header_row(values = "Full-base model comparisons across imputations", colwidths = 9) %>%
+  add_footer_lines(values = c("HCV = hippocampal volume; WMHV = white matter hyperintensity volume; EF = executive functions; MEMO = memory; PS = processing speed; GAD7 = 7-item Generlaized Anxiety Disease Questionnaire; CESD = 20-item Center for Epidemiologic Studies Depression Scale \n model 1: controlled for age and gender; model 2: controlled for further covariates \n Δ BIC: difference in BIC of base and full model. Values <0 favour the base model; min/max Δ BIC: minimum/maximum differences across the five imputations; % of effect: share of the effect of social contact on the outcome observed in participants with LSNS scores < 12 (socially isolated by standard cut-off); min/max % of effect: share of effect across imputations"))
+```
+
+# Table S1
+
+```{r echo=FALSE}
+library(flextable)
+library(tidyverse)
+
+set_flextable_defaults(font.family = "Times New Roman", font.size = 12)
+# set working directory and read in the results table
+setwd("/data/pt_life/ResearchProjects/LLammer/gamms/Results/unweighted/")
+df <- read.csv("overview.csv")
+# remove irrelevant rows
+df <- df[c(1,2,7:18),]
+# give outcome better names for table
+df$outcome <- rep(c("HCV", "WMHV", "MEMO", "EF", "PS", "GAD7", "CESD"), each = 2)
+# rearrange rows to order cog functions alphabetically
+df[5:8,] <- df[c(7,8,5,6),]
+# replace missing q-values with p-values for non-FDR corrected models
+df$s_lsns_q.value <- ifelse(is.na(df$s_lsns_q.value), df$s_lsns_p.value_onesided, df$s_lsns_q.value)
+df$s_lsns_q.value <- ifelse(df$s_lsns_q.value < 0.0001, format(df$s_lsns_q.value, scientific = T, digits = 2), 
+                     round(df$s_lsns_q.value, digits = 4))
+df$s_lsns_q.value <- ifelse(df$s_lsns_q.value == "0.0e+00", "<2*10^16", df$s_lsns_q.value)
+df$min_s_lsns_q.value <- ifelse(is.na(df$min_s_lsns_q.value), df$min_s_lsns_p.value_onesided, df$min_s_lsns_q.value)
+df$min_s_lsns_q.value <- ifelse(df$min_s_lsns_q.value < 0.0001, format(df$min_s_lsns_q.value, scientific = T, digits = 2), 
+                            round(df$min_s_lsns_q.value, digits = 4))
+df$min_s_lsns_q.value <- ifelse(df$min_s_lsns_q.value == "0.0e+00", "<2*10^16", df$min_s_lsns_q.value)
+df$max_s_lsns_q.value <- ifelse(is.na(df$max_s_lsns_q.value), df$min_s_lsns_p.value_onesided, df$max_s_lsns_q.value)
+df$max_s_lsns_q.value <- ifelse(df$max_s_lsns_q.value < 0.0001, format(df$max_s_lsns_q.value, scientific = T, digits = 2), 
+                                round(df$max_s_lsns_q.value, digits = 4))
+df$max_s_lsns_q.value <- ifelse(df$max_s_lsns_q.value == "0.0e+00", "<2*10^16", df$max_s_lsns_q.value)
+# replace the covariate string with the model number
+df$covariates <- ifelse(df$covariates == "min", 1, 2)
+# express proportion of significance in n/5
+df$prop_lsns_q_significant <- paste0(df$prop_lsns_q_significant*5, "/5")
+flextable(df, col_keys = c("outcome", "covariates", "s_lsns_q.value", "min_s_lsns_q.value", "max_s_lsns_q.value", "prop_lsns_q_significant", "nobs")) %>%
+  theme_vanilla() %>%
+  set_header_labels(covariates = "model", s_lsns_q.value = "p/q-value", min_s_lsns_q.value = "min p/q-value", max_s_lsns_q.value = "max p/q-value", nobs = "n obs", prop_lsns_q_significant = "prop. signif.") %>% 
+  add_header_row(values = "Measures of significance across imputations", colwidths = 7) %>%
+  add_footer_lines(values = c("HCV = hippocampal volume; WMHV = white matter hyperintensity volume; EF = executive functions; MEMO = memory; PS = processing speed; GAD7 = 7-item Generlaized Anxiety Disease Questionnaire; CESD = 20-item Center for Epidemiologic Studies Depression Scale \n model 1: controlled for age and gender; model 2: controlled for further covariates \n HCV, WMHV, EF, MEMO & PS were FDR-corrected - for these variables the displayed values are q-values \n p/q-value = value in the 1st imputed dataset; min/max p/q-value: minimum/maximum value across all five imputations \n prop. signif. = proprtion of significant p/q vcalues across the five imputations; n obs = number of observation"))
+```
+
+# Table S2
+
+```{r echo=FALSE}
+library(flextable)
+library(tidyverse)
+
+set_flextable_defaults(font.family = "Times New Roman", font.size = 12)
+# set working directory and read in the results table
+setwd("/data/pt_life/ResearchProjects/LLammer/gamms/Results/unweighted/")
+df <- read.csv("overview.csv")
+# remove irrelevant rows
+df <- df[c(1,2,7:18),]
+# give outcome better names for table
+df$outcome <- rep(c("HCV", "WMHV", "MEMO", "EF", "PS", "GAD7", "CESD"), each = 2)
+# rearrange rows to order cog functions alphabetically
+df[5:8,] <- df[c(7,8,5,6),]
+# replace the covariate string with the model number
+df$covariates <- ifelse(df$covariates == "min", 1, 2)
+# turn prop of effect into %
+df[,c("prop_of_effect", "min_prop_of_effect", "max_prop_of_effect")] <- 100 * df[,c("prop_of_effect", "min_prop_of_effect", "max_prop_of_effect")]
+# round values
+df[,c("Pr..Chisq.", "diff_BIC", "min_diff_BIC", "max_diff_BIC", "prop_of_effect", "min_prop_of_effect", "max_prop_of_effect")] <-
+  round(df[,c("Pr..Chisq.", "diff_BIC", "min_diff_BIC", "max_diff_BIC", "prop_of_effect", "min_prop_of_effect", "max_prop_of_effect")], digits = 3)
+flextable(df, col_keys = c("outcome", "covariates", "Pr..Chisq.", "diff_BIC", "min_diff_BIC", "max_diff_BIC", "prop_of_effect", "min_prop_of_effect", "max_prop_of_effect")) %>%
+  theme_vanilla() %>%
+  set_header_labels(covariates = "model", Pr..Chisq. = "p full vs null", diff_BIC = "Δ BIC", min_diff_BIC = "min Δ BIC", max_diff_BIC = "max Δ BIC", prop_of_effect = "% of effect", min_prop_of_effect = "min % of effect", max_prop_of_effect = "max % of effect") %>% 
+  add_header_row(values = "Full-base model comparisons across imputations", colwidths = 9) %>%
+  add_footer_lines(values = c("HCV = hippocampal volume; WMHV = white matter hyperintensity volume; EF = executive functions; MEMO = memory; PS = processing speed; GAD7 = 7-item Generlaized Anxiety Disease Questionnaire; CESD = 20-item Center for Epidemiologic Studies Depression Scale \n model 1: controlled for age and gender; model 2: controlled for further covariates \n Δ BIC: difference in BIC of base and full model. Values <0 favour the base model; min/max Δ BIC: minimum/maximum differences across the five imputations; % of effect: share of the effect of social contact on the outcome observed in participants with LSNS scores < 12 (socially isolated by standard cut-off); min/max % of effect: share of effect across imputations"))
+```
+
+# Table S3
+
+```{r echo=FALSE}
+library(flextable)
+library(tidyverse)
+
+set_flextable_defaults(font.family = "Times New Roman", font.size = 12)
+# set working directory and read in the results table
+setwd("/data/pt_life/ResearchProjects/LLammer/gamms/Results/observed_only/")
+df <- read.csv("overview.csv")
+# remove irrelevant rows
+df <- df[c(1,2,7:18),]
+# give outcome better names for table
+df$outcome <- rep(c("HCV", "WMHV", "MEMO", "EF", "PS", "GAD7", "CESD"), each = 2)
+# rearrange rows to order cog functions alphabetically
+df[5:8,] <- df[c(7,8,5,6),]
+
+df$s_lsns_q.value <- ifelse(is.na(df$s_lsns_q.value), df$s_lsns_p.value_onesided, df$s_lsns_q.value)
+df$s_lsns_q.value <- ifelse(df$s_lsns_q.value < 0.0001, format(df$s_lsns_q.value, scientific = T, digits = 2), 
+                            round(df$s_lsns_q.value, digits = 4))
+df$s_lsns_q.value <- ifelse(df$s_lsns_q.value == "0.0e+00", "<2*10^16", df$s_lsns_q.value)
+# replace the covariate string with the model number
+df$covariates <- ifelse(df$covariates == "min", 1, 2)
+flextable(df, col_keys = c("outcome", "covariates", "s_lsns_q.value", "nobs")) %>%
+  theme_vanilla() %>%
+  set_header_labels(covariates = "model", s_lsns_q.value = "p/q-value", nobs = "n obs") %>% 
+  add_header_row(values = "Measures of significance using only observed data", colwidths = 4) %>%
+  width(width = 1.3) %>%
+  add_footer_lines(values = c("HCV = hippocampal volume; WMHV = white matter hyperintensity volume; EF = executive functions; MEMO = memory; PS = processing speed; GAD7 = 7-item Generlaized Anxiety Disease Questionnaire; CESD = 20-item Center for Epidemiologic Studies Depression Scale \n model 1: controlled for age and gender; model 2: controlled for further covariates \n HCV, WMHV, EF, MEMO & PS were FDR-corrected - for these variables the displayed values are q-values \n n obs = number of observation"))
+
+```
+
+
+# Table S4
+
+
+```{r echo=FALSE}
+library(flextable)
+library(tidyverse)
+
+setwd("/data/pt_life/ResearchProjects/LLammer/gamms/Results/observed_only/")
+df <- read.csv("overview.csv")
+# remove irrelevant rows
+df <- df[c(1,2,7:18),]
+# give outcome better names for table
+df$outcome <- rep(c("HCV", "WMHV", "MEMO", "EF", "PS", "GAD7", "CESD"), each = 2)
+# rearrange rows to order cog functions alphabetically
+df[5:8,] <- df[c(7,8,5,6),]
+# turn prop of effect into %
+df[,c("prop_of_effect")] <- 100 * df[,c("prop_of_effect")]
+# round values
+df[,c("Pr..Chisq.", "diff_BIC", "prop_of_effect")] <- round(df[,c("Pr..Chisq.", "diff_BIC", "prop_of_effect")], digits = 3)
+
+# replace the covariate string with the model number
+df$covariates <- ifelse(df$covariates == "min", 1, 2)
+flextable(df, col_keys = c("outcome", "covariates", "Pr..Chisq.", "diff_BIC", "prop_of_effect")) %>%
+  theme_vanilla() %>%
+  set_header_labels(covariates = "model", Pr..Chisq. = "p full vs null", diff_BIC = "Δ BIC", prop_of_effect = "% of effect") %>% 
+  add_header_row(values = "Full-base model comparisons using only observed data", colwidths = 5) %>%
+  width(width = 1.1) %>%
+  add_footer_lines(values = c("HCV = hippocampal volume; WMHV = white matter hyperintensity volume; EF = executive functions; MEMO = memory; PS = processing speed; GAD7 = 7-item Generlaized Anxiety Disease Questionnaire; CESD = 20-item Center for Epidemiologic Studies Depression Scale \n model 1: controlled for age and gender; model 2: controlled for further covariates \n Δ BIC: difference in BIC of base and full model. Values <0 favour the base model; % of effect: share of the effect of social contact on the outcome observed in participants with LSNS scores < 12 (socially isolated by standard cut-off)"))
+
+
+```
