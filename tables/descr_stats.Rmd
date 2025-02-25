@@ -1,0 +1,93 @@
+---
+title: "tables"
+author: "LL"
+date: "2025-02-05"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+## Tables
+
+Descriptive Statistics for key variables
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(gtsummary)
+library(tidyverse)
+library(mice)
+
+# load dataframe
+data <- read.csv("/data/pt_life/ResearchProjects/LLammer/gamms/Data/assembled_unscaled_data.csv")
+mean_age <- mean(data$AGE, na.rm = T)
+# make education categorical, select and rename relevant columns
+data <- data %>%
+  mutate(EDUCATION = case_when(
+    EDUCATION < 3.6 ~ 1, 
+    EDUCATION >= 3.6 ~ 0,
+    TRUE ~ NA_real_
+  )) %>%
+  select(tp, GENDER, AGE, LSNS_SUM, CES_D_SUM, GAD7_SUM, EF, MEMO, PS, HCV_ADJ, LESIONS, BMI, HYPERTENSION, DIABETES, EDUCATION, SES_QUINTILE) %>%
+  rename(
+    "gender (male)" = GENDER,
+    "age (years)" = AGE,
+    "LSNS score" = LSNS_SUM,
+    "CES-D score" = CES_D_SUM,
+    "GAD7 score" = GAD7_SUM,
+    "memory (SD)" = MEMO,
+    "processing speed (SD)" = PS,
+    "executive functions (SD)" = EF,
+    "HCV (mm³)" = HCV_ADJ,
+    "WMHV (mm³)" = LESIONS, 
+    "BMI (kg/m²)" = BMI,
+    "SES quintile" = SES_QUINTILE,
+    "hypertension" = HYPERTENSION,
+    "diabetes" = DIABETES,
+    "education" = EDUCATION
+  )
+# create the descriptive statistics table
+tbl_summary(data = data, by = tp, statistic = list(c(`age (years)`, `BMI (kg/m²)`, `CES-D score`, `GAD7 score`, `LSNS score`, `HCV (mm³)`,
+                                                      `WMHV (mm³)`, `memory (SD)`, `processing speed (SD)`, 
+                                                      `executive functions (SD)`) ~ "{mean} ({sd}) | {min} | {max} | {N_miss}", 
+                                                      all_categorical() ~ "{n} ({p}%) | {N_miss}"), missing = "no") %>%
+  modify_footnote(update = all_stat_cols() ~ "categorical: n (%) yes | n missing; continuous: Mean (SD) | minimum | maximum | n missing\n\nLSNS = Lubben Social Network Scale; CES-D = Center for Epidemiological Studies Depression Scale; GAD7 = Generalized Anxiety Disorder 7; HCV = right-left average hippocampal volume adjusted for intracranial volume; WMHV = white matter hyperintensity volume; BMI = body-mass-index;  SD, standard deviation; education: yes = no tertiary education")  
+
+load("/data/pt_life/ResearchProjects/LLammer/gamms/Analysis/Imputation/Imputations.RData")
+data <- complete(imp, action = 1)
+data <- data %>%
+  mutate(EDUCATION = case_when(
+    EDUCATION < 3.6 ~ 1, 
+    EDUCATION >= 3.6 ~ 0,
+    TRUE ~ NA_real_), SES_QUINTILE = case_when(
+     round(SES_WEIGHT, digits = 2) == 2.27 ~ 1,
+     round(SES_WEIGHT, digits = 2) == 1.32 ~ 2,
+     round(SES_WEIGHT, digits = 2) == 0.91 ~ 3,
+     round(SES_WEIGHT, digits = 2) == 0.79 ~ 4,
+     round(SES_WEIGHT, digits = 2) == 0.69 ~ 5,
+     TRUE ~ NA_real_), 
+    AGE = mean_age + AGE) %>%
+  select(tp, GENDER, AGE, LSNS_SUM, CES_D_SUM, GAD7_SUM, EF, MEMO, PS, HCV_ADJ, LESIONS, BMI, HYPERTENSION, DIABETES, EDUCATION, SES_QUINTILE) %>%
+  rename(
+    "gender (male)" = GENDER,
+    "age (years)" = AGE,
+    "LSNS score" = LSNS_SUM,
+    "CES-D score" = CES_D_SUM,
+    "GAD7 score" = GAD7_SUM,
+    "memory (SD)" = MEMO,
+    "processing speed (SD)" = PS,
+    "executive functions (SD)" = EF,
+    "HCV (mm³)" = HCV_ADJ,
+    "WMHV (mm³)" = LESIONS, 
+    "BMI (kg/m²)" = BMI,
+    "SES quintile" = SES_QUINTILE,
+    "hypertension" = HYPERTENSION,
+    "diabetes" = DIABETES,
+    "education" = EDUCATION
+  )
+# create the descriptive statistics table
+tbl_summary(data = data, by = tp, statistic = list(c(`age (years)`, `BMI (kg/m²)`, `CES-D score`, `GAD7 score`, `LSNS score`, `HCV (mm³)`,
+                                                      `WMHV (mm³)`, `memory (SD)`, `processing speed (SD)`, 
+                                                      `executive functions (SD)`) ~ "{mean} ({sd}) | {min} | {max} | {N_miss}", 
+                                                      all_categorical() ~ "{n} ({p}%) | {N_miss}"), missing = "no", value = list(c(hypertension, diabetes) ~ "1")) %>%
+  modify_footnote(update = all_stat_cols() ~ "categorical: n (%) yes | n missing; continuous: Mean (SD) | minimum | maximum | n missing\n\nLSNS = Lubben Social Network Scale; CES-D = Center for Epidemiological Studies Depression Scale; GAD7 = Generalized Anxiety Disorder 7; HCV = right-left average hippocampal volume adjusted for intracranial volume; WMHV = white matter hyperintensity volume; BMI = body-mass-index;  SD, standard deviation; education: yes = no tertiary education")  
+```
