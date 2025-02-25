@@ -1,0 +1,44 @@
+---
+title: "Power Simulation results"
+author: "LL"
+date: "2024-05-31"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(flextable)
+library(tidyverse)
+setwd("/data/pt_life/ResearchProjects/LLammer/gamms/Analysis/Simulations/")
+df <- read.csv("simresults.csv")
+df[,c("meanAICbase", "meanAICfull", "meanBICbase", "meanBICfull")] <- round(df[,c("meanAICbase", "meanAICfull", "meanBICbase", "meanBICfull")],0)
+df[,c("meandAICbasefull", "meandBICbasefull", "meanedf")] <- round(df[,c("meandAICbasefull", "meandBICbasefull", "meanedf")],2)
+df$meanpfull <- ifelse(df$meanpfull < 0.001, format(df$meanpfull, scientific = T, digits = 2), 
+                     round(df$meanpfull, digits = 3))
+df$scenario <- c(rep("linear", 7), rep("linear + exponential", 7), rep("linear + linear", 7), rep("thresholded exponential", 7), rep("thresholded linear", 7))
+df$outcome <- c("HCV", "executive functions", "memory", "processing speed", "CESD", "WMHV", "GAD7")
+df <- df[,c("scenario", "outcome", "propsignif", "meanpfull", "meanedf", "meandAICbasefull", "propAICprofull", "meandBICbasefull", "propBICprofull")]
+flextable(df) %>%
+  theme_vanilla() %>%
+  font(fontname = "Times New Roman", part = "all") %>% 
+  set_header_labels(propsignif = "% significant", meanpfull = "mean p-value", meanedf = "mean edf", meandAICbasefull = 
+                      paste0("mean \u394 AIC"), propAICprofull = "% AIC pro full", meandBICbasefull = 
+                      paste0("mean \u394 BIC"), propBICprofull = "% BIC pro full") %>%
+  merge_at(i=1:7,j=1) %>%
+  merge_at(i=8:14,j=1) %>%
+  merge_at(i=15:21,j=1) %>%
+  merge_at(i=22:28,j=1) %>%
+  merge_at(i=29:35,j=1) %>%
+  add_header_row(values = "Pooled results of 100 simulations", colwidths = 9) %>%
+  add_footer_lines(values = c("% significant, proportion of simulations in which p < 0.05 in full to base model comparison; mean edf, mean estimated degrees of freedom of the LSNS-smooth; mean \u394 AIC, mean difference of base model AIC - full model AIC; % AIC pro full, proportion of AICs favouring the full model; mean \u394 BIC, mean difference of base model BIC - full model BIC; % BIC pro full, proportion of BICs favouring the full model; HCV, hippocampal volume; CESD, Centre for Epidemiological Studies Depression; WMHV, total white matter hyperintensity volume; GAD7, Generalized Anxiety Disorder 7",
+"linear scenario: same slope across all LSNS values", 
+"linear + exponential scenario: linear effect across all LSNS values with additional exponential effect in socially isolated individuals", 
+"linear + linear scenario: linear effect across all LSNS values with additional linear effect in socially isolated individuals",
+"thresholded exponential scenario: exponential effect in socially isolated indiciduals",
+"thresholded linear scenario: linear effect in socially isolated indiciduals"))
+```
+
+
+
+
