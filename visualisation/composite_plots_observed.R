@@ -11,7 +11,7 @@ path = "/data/pt_life/ResearchProjects/LLammer/gamms/Results/observed_only/"
 # load overview or results df
 overview <- read.csv(paste0(path, "overview.csv"))
 # rename outcome values in overview to match script
-overview[c(1:4,7:18), "outcome"] <- rep(c("HCV", "LESIONSNOLOG", "LESIONS", "EX. FUNCT.", "MEMORY", "PROC. SPEED", 
+overview[c(1:4,7:18), "outcome"] <- rep(c("HCV", "LESIONSNOLOG", "WMHV", "EX. FUNCT.", "MEMORY", "PROC. SPEED", 
                                         "GAD7_SUM", "CES_D_SUM"), each = 2)
 
 # choose palette & linecolour
@@ -51,9 +51,9 @@ load(paste0(path, "/models.RData"))
 
 # create a list matching outcomes to the indices of the models saved in imp1, imp2, ...
 # create one for few and one for many covariates models
-matches_min <- list("HCV" = 1, "LESIONS" = 9, "EX. FUNCT." = 17, "MEMORY" = 21, "PROC. SPEED" = 25, 
+matches_min <- list("HCV" = 1, "WMHV" = 9, "EX. FUNCT." = 17, "MEMORY" = 21, "PROC. SPEED" = 25, 
                     "GAD7_SUM" = 29, "CES_D_SUM" = 33)
-matches_max <- list("HCV" = 3, "LESIONS" = 11, "EX. FUNCT." = 19, "MEMORY" = 23, "PROC. SPEED" = 27, 
+matches_max <- list("HCV" = 3, "WMHV" = 11, "EX. FUNCT." = 19, "MEMORY" = 23, "PROC. SPEED" = 27, 
                     "GAD7_SUM" = 31, "CES_D_SUM" = 35)
 
 composite_plotting <- function(outcome, link = "identity", row = 1, covariates = "min") {
@@ -121,11 +121,11 @@ composite_plotting <- function(outcome, link = "identity", row = 1, covariates =
 
 # create, arrange and save the plots
 HCV_min <- composite_plotting(outcome = "HCV")
-LESIONS_min <- composite_plotting(outcome = "LESIONS", link = "log", row = 2)
+LESIONS_min <- composite_plotting(outcome = "WMHV", link = "log", row = 2)
 mri_comp_plots_min <- HCV_min[[1]] / LESIONS_min[[1]] 
 ggsave(paste0(path, "mri_comp_plots_min.tiff"), mri_comp_plots_min, width = 18, height = 8.6, units = "in", dpi = 600)
 HCV_max <- composite_plotting(outcome = "HCV", covariates = "max")
-LESIONS_max <- composite_plotting(outcome = "LESIONS", link = "log", row = 2, covariates = "max")
+LESIONS_max <- composite_plotting(outcome = "WMHV", link = "log", row = 2, covariates = "max")
 mri_comp_plots_max <- HCV_max[[1]] / LESIONS_max[[1]] 
 ggsave(paste0(path, "mri_comp_plots_max.tiff"), mri_comp_plots_max, width = 18, height = 8.6, units = "in", dpi = 600)
 EF_min <- composite_plotting(outcome = "EX. FUNCT.")
