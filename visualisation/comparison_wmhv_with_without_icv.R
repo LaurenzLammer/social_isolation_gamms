@@ -24,7 +24,7 @@ ploticv2 <- smicv2 |>
   ggplot() + # initiate plot
   geom_ribbon(aes(ymin = .lower_ci, ymax = .upper_ci, x = LSNS_SUM), alpha = 0.1) + # add confint
   geom_line(aes(x = LSNS_SUM, y = .estimate), lwd = 1, color = linecol) + # add smooth line
-  labs(y = "Lesions", title = "s(LSNS_SUM) controlled for ICV M2", tag = LETTERS[2]) + theme_bw() +
+  labs(y = "WMHV", title = "s(LSNS_SUM) controlled for ICV M2", tag = LETTERS[2]) + theme_bw() +
   scale_x_continuous(limits = c(0, 30), expand = c(0, 0)) 
 plotnoicv2 <- smnoicv2 |>
   filter(.smooth == "s(LSNS_SUM)") |> # select the LSNS smooth 
@@ -35,3 +35,4 @@ plotnoicv2 <- smnoicv2 |>
   scale_x_continuous(limits = c(0, 30), expand = c(0, 0)) 
 all_plots <- ploticv2 + plotnoicv2
 ggsave(paste0(path, "wmhv_with_without_icv.tiff"), all_plots, width = 18, height = 5, units = "in", dpi = 600)
+
