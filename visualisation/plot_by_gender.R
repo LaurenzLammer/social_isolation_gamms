@@ -14,9 +14,9 @@ palette <- met.brewer(name = "Archambault")
 load(paste0(path, "imp1/models.RData"))
 
 # create one for few and one for many covariates models
-matches_min <- list("HCV" = 1, "LESIONS" = 5, "EX. FUNCT." = 9, "MEMORY" = 11, "PROC. SPEED" = 13, 
+matches_min <- list("HCV" = 1, "WMHV" = 5, "EX. FUNCT." = 9, "MEMORY" = 11, "PROC. SPEED" = 13, 
                     "GAD7_SUM" = 15, "CES_D_SUM" = 17)
-matches_max <- list("HCV" = 2, "LESIONS" = 6, "EX. FUNCT." = 10, "MEMORY" = 12, "PROC. SPEED" = 14, 
+matches_max <- list("HCV" = 2, "WMHV" = 6, "EX. FUNCT." = 10, "MEMORY" = 12, "PROC. SPEED" = 14, 
                     "GAD7_SUM" = 16, "CES_D_SUM" = 18)
 
 composite_plotting <- function(outcome, link = "identity", row = 1, covariates = "min") {
@@ -63,11 +63,11 @@ composite_plotting <- function(outcome, link = "identity", row = 1, covariates =
 
 # create, arrange and save the plots
 HCV_min <- composite_plotting(outcome = "HCV")
-LESIONS_min <- composite_plotting(outcome = "LESIONS", link = "log", row = 2)
+LESIONS_min <- composite_plotting(outcome = "WMHV", link = "log", row = 2)
 mri_comp_plots_min <- HCV_min / LESIONS_min
 ggsave(paste0(path, "mri_comp_plots_min.tiff"), mri_comp_plots_min, width = 6, height = 8.6, units = "in", dpi = 600)
 HCV_max <- composite_plotting(outcome = "HCV", covariates = "max")
-LESIONS_max <- composite_plotting(outcome = "LESIONS", link = "log", row = 2, covariates = "max")
+LESIONS_max <- composite_plotting(outcome = "WMHV", link = "log", row = 2, covariates = "max")
 mri_comp_plots_max <- HCV_max / LESIONS_max
 ggsave(paste0(path, "mri_comp_plots_max.tiff"), mri_comp_plots_max, width = 6, height = 8.6, units = "in", dpi = 600)
 mri_comp_plots_min_max <- (HCV_min + HCV_max) / (LESIONS_min + LESIONS_max)
