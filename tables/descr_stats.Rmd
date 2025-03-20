@@ -29,7 +29,7 @@ data <- data %>%
   )) %>%
   select(tp, GENDER, AGE, LSNS_SUM, CES_D_SUM, GAD7_SUM, EF, MEMO, PS, HCV_ADJ, LESIONS, BMI, HYPERTENSION, DIABETES, EDUCATION, SES_QUINTILE) %>%
   rename(
-    "gender (male)" = GENDER,
+    "gender (men)" = GENDER,
     "age (years)" = AGE,
     "LSNS score" = LSNS_SUM,
     "CES-D score" = CES_D_SUM,
@@ -68,7 +68,7 @@ data <- data %>%
     AGE = mean_age + AGE) %>%
   select(tp, GENDER, AGE, LSNS_SUM, CES_D_SUM, GAD7_SUM, EF, MEMO, PS, HCV_ADJ, LESIONS, BMI, HYPERTENSION, DIABETES, EDUCATION, SES_QUINTILE) %>%
   rename(
-    "gender (male)" = GENDER,
+    "gender (men)" = GENDER,
     "age (years)" = AGE,
     "LSNS score" = LSNS_SUM,
     "CES-D score" = CES_D_SUM,
