@@ -40,9 +40,9 @@ anovaresults <- anovaresults %>%
   mutate(diff_AIC = lag(AIC) - AIC,
          diff_BIC = lag(BIC) - BIC) 
 # create an overview df to collect results
-overview <- data.frame(matrix(ncol = 14, nrow = 18))
+overview <- data.frame(matrix(ncol = 15, nrow = 18))
 colnames(overview) <- c("outcome", "covariates", "s_age_edf", "s_age_p-value", "s_lsns_edf", "s_lsns_p-value_onesided", 
-                        "s_lsns_q-value", "s_lsns_F", "prop_of_effect", "diff_AIC", "diff_BIC", "Pr..Chisq.", "favours_nonlinear", "nobs")
+                        "s_lsns_q-value", "s_lsns_F", "prop_of_effect", "diff_AIC", "diff_BIC", "Pr..Chisq.", "Chisq", "favours_nonlinear", "nobs")
 outcomes <- c("HCV_ADJ", "LESIONS", "LESIONSLOG", "LESIONSLOGICV", "MEMO", "EF", "PS", "GAD7_SUM", "CES_D_SUM")
 overview$outcome <- rep(outcomes, each = 2, length.out = 9*2)
 overview$covariates <- rep(c("min", "max"), each = 1, length.out = 9*2)
@@ -99,7 +99,7 @@ for (outcome in outcomes) {
   for (measure in c("s_age_edf", "s_age_p-value", "s_lsns_edf", "s_lsns_p-value_onesided", "s_lsns_q-value", "s_lsns_F")) {
     get_edf_n_p(outcome = outcome, measure = measure)
   }
-  for (measure in c("diff_AIC", "diff_BIC", "Pr..Chisq.")) {
+  for (measure in c("diff_AIC", "diff_BIC", "Pr..Chisq.", "Chisq")) {
     get_anova_measures(outcome = outcome, measure = measure)
   }
 }
