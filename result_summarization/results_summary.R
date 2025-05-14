@@ -53,11 +53,12 @@ anovaresults <- anovaresults %>%
   mutate(diff_AIC = lag(AIC) - AIC,
          diff_BIC = lag(BIC) - BIC) 
 # create an overview df to collect results
-overview <- data.frame(matrix(ncol = 33, nrow = 18))
+overview <- data.frame(matrix(ncol = 36, nrow = 18))
 colnames(overview) <- c("outcome", "covariates", "s_age_edf", "min_s_age_edf", 
                         "max_s_age_edf", "s_age_p-value", "min_s_age_p-value", 
                         "max_s_age_p-value", "s_lsns_edf", "min_s_lsns_edf", 
-                        "max_s_lsns_edf", "s_lsns_p-value_onesided", "min_s_lsns_p-value_onesided", 
+                        "max_s_lsns_edf", "s_lsns_F", "min_s_lsns_F", 
+                        "max_s_lsns_F", "s_lsns_p-value_onesided", "min_s_lsns_p-value_onesided", 
                         "max_s_lsns_p-value_onesided", "prop_lsns_p_significant", "s_lsns_q-value", "min_s_lsns_q-value",  
                         "max_s_lsns_q-value", "prop_lsns_q_significant", "prop_of_effect", "min_prop_of_effect", 
                         "max_prop_of_effect", "diff_AIC", "min_diff_AIC", "max_diff_AIC", 
@@ -136,7 +137,8 @@ return_imp1_prop_of_effect_with_min_max <- function(){
   return(relative_effects[,c("imp1", "min", "max")])
 }
 for (outcome in outcomes) {
-  for (measure in c("s_age_edf", "s_age_p-value", "s_lsns_edf", "s_lsns_p-value_onesided", "s_lsns_q-value")) {
+  for (measure in c("s_age_edf", "s_age_p-value", "s_lsns_edf", "s_lsns_p-value_onesided", "s_lsns_q-value",
+                    "s_lsns_F")) {
     get_imp1_edf_n_p_with_min_and_max(outcome = outcome, measure = measure)
   }
   for (measure in c("diff_AIC", "diff_BIC", "Pr..Chisq.")) {
